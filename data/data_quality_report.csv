@@ -1,0 +1,17 @@
+check,rows_affected,action
+empty rows,3,dropped
+"missing-value tokens (N/A, -, null, blank)",549,converted to NaN
+non-standard layer/sector spellings,57,unmapped values set to NaN (dropped in validation)
+unparseable dates,0,repaired from quarter label
+exact duplicate rows,200,dropped
+duplicate NBFC/quarter/sector keys,50,"kept first, dropped rest"
+rows missing a critical field,53,dropped
+non-positive loan_outstanding_cr,41,dropped
+"gnpa_pct outside [0, 100]",41,set to NaN
+"nnpa_pct outside [0, 100]",1,set to NaN
+"crar_pct outside [0, 100]",43,set to NaN
+NNPA% greater than GNPA%,37,dropped
+missing gnpa_pct after cleaning,165,imputed with quarter/sector median
+missing nnpa_pct after cleaning,129,imputed with quarter/sector median
+missing crar_pct after cleaning,169,imputed with quarter/sector median
+missing roa_pct after cleaning,129,imputed with quarter/sector median

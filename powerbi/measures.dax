@@ -1,0 +1,163 @@
+// ============================================================================
+// measures.dax
+// Indian NBFC Portfolio & Asset-Quality Analytics — Power BI DAX measures
+// ----------------------------------------------------------------------------
+// Paste each measure into Power BI Desktop (Modeling > New Measure), or create
+// a dedicated "_Measures" table and add them there to keep the model tidy.
+//
+// DATA MODEL these assume (see DASHBOARD_GUIDE.md, "Model" section):
+//   dim_nbfc[nbfc_id]  1 --- *  fact_portfolio[nbfc_id]
+//   dim_date[period_end] 1 --- * fact_portfolio[period_end]   (mark dim_date as a Date table)
+//   fact_portfolio is the fact table; agg_sector_quarter is loaded but NOT
+//   related — it is only a validation/back-up table.
+//
+// KEY MODELLING CHOICE: asset-quality ratios are LOAN-WEIGHTED, never a plain
+// AVERAGE of the row-level percentages. A tiny NBFC's 40% GNPA must not count
+// the same as a giant NBFC's 2%. Every ratio below divides summed rupees.
+// ============================================================================
+
+
+// ---------------------------------------------------------------------------
+// 1. BASE ADDITIVE MEASURES (rupee amounts — safe to SUM across any slicer)
+// ---------------------------------------------------------------------------
+
+Loan Book (Cr) =
+SUM ( fact_portfolio[loan_outstanding_cr] )
+
+Gross NPA (Cr) =
+SUM ( fact_portfolio[gnpa_amount_cr] )
+
+Net NPA (Cr) =
+SUM ( fact_portfolio[nnpa_amount_cr] )
+
+// Display helper: convert crore to lakh-crore for headline cards (1 lakh cr = 1e5 cr)
+Loan Book (Lakh Cr) =
+DIVIDE ( [Loan Book (Cr)], 1E5 )
+
+
+// ---------------------------------------------------------------------------
+// 2. ASSET-QUALITY RATIOS (loan-weighted — computed from the base measures)
+// ---------------------------------------------------------------------------
+
+GNPA % =
+DIVIDE ( [Gross NPA (Cr)], [Loan Book (Cr)] ) * 100
+
+NNPA % =
+DIVIDE ( [Net NPA (Cr)], [Loan Book (Cr)] ) * 100
+
+// Provision Coverage Ratio implied by the book: 1 - Net/Gross.
+Provision Coverage % =
+DIVIDE ( [Gross NPA (Cr)] - [Net NPA (Cr)], [Gross NPA (Cr)] ) * 100
+
+// CRAR and RoA are BALANCE-SHEET attributes (identical across an entity's
+// sector rows), so a loan-weighted average across entities is the correct
+// sector view. SUMX iterates the fact grain and weights by loan size.
+CRAR % (wtd) =
+DIVIDE (
+    SUMX ( fact_portfolio,
+           fact_portfolio[crar_pct] * fact_portfolio[loan_outstanding_cr] ),
+    [Loan Book (Cr)]
+)
+
+RoA % (wtd) =
+DIVIDE (
+    SUMX ( fact_portfolio,
+           fact_portfolio[roa_pct] * fact_portfolio[loan_outstanding_cr] ),
+    [Loan Book (Cr)]
+)
+
+
+// ---------------------------------------------------------------------------
+// 3. TIME-INTELLIGENCE (QoQ deltas — needs a marked Date table: dim_date)
+// ---------------------------------------------------------------------------
+
+// Prior-quarter loan book. dim_date must be a contiguous quarterly date table
+// marked as the model's Date table for DATEADD to step by quarter.
+Loan Book (Cr) PrevQ =
+CALCULATE ( [Loan Book (Cr)], DATEADD ( dim_date[period_end], -1, QUARTER ) )
+
+Credit Growth % QoQ =
+VAR Curr = [Loan Book (Cr)]
+VAR Prev = [Loan Book (Cr) PrevQ]
+RETURN DIVIDE ( Curr - Prev, Prev ) * 100
+
+GNPA % PrevQ =
+CALCULATE ( [GNPA %], DATEADD ( dim_date[period_end], -1, QUARTER ) )
+
+// Positive = deterioration, negative = improvement. Format with a +/- and a
+// red/green conditional colour on the card.
+GNPA % QoQ Change (pp) =
+[GNPA %] - [GNPA % PrevQ]
+
+// Fresh slippage: only positive quarter-on-quarter accretion to gross NPA rupees.
+// (Recoveries/write-offs that reduce GNPA are floored out — this proxies new stress.)
+Fresh Slippage (Cr) =
+VAR Delta = [Gross NPA (Cr)] - CALCULATE ( [Gross NPA (Cr)],
+              DATEADD ( dim_date[period_end], -1, QUARTER ) )
+RETURN MAX ( Delta, 0 )
+
+
+// ---------------------------------------------------------------------------
+// 4. RANKING & RISK MEASURES (for the entity-drilldown page)
+// ---------------------------------------------------------------------------
+
+// Rank NBFCs by GNPA within the current filter context (e.g. within a layer).
+// ALLSELECTED respects outer slicers but ranks across the visible entity set.
+NBFC GNPA Rank =
+IF (
+    HASONEVALUE ( dim_nbfc[nbfc_id] ),
+    RANKX (
+        ALLSELECTED ( dim_nbfc[nbfc_id] ),
+        [GNPA %],
+        , DESC, DENSE
+    )
+)
+
+// Composite risk score: NPA burden plus a penalty for thin capital below 15%.
+// Higher = riskier. Mirrors the SQL composite in nbfc_analytics.sql Section 5.
+Composite Risk Score =
+[GNPA %] + [NNPA %] + MAX ( 0, 15 - [CRAR % (wtd)] )
+
+// Portfolio concentration (Herfindahl-Hirschman Index) for a single NBFC:
+// sum of squared segment shares. 0.125 = perfectly diversified across 8 sectors,
+// 1.0 = single-segment book. Guard with HASONEVALUE so it only shows per entity.
+Portfolio HHI =
+IF (
+    HASONEVALUE ( dim_nbfc[nbfc_id] ),
+    SUMX (
+        VALUES ( fact_portfolio[sector] ),
+        VAR Share =
+            DIVIDE (
+                CALCULATE ( [Loan Book (Cr)] ),
+                CALCULATE ( [Loan Book (Cr)], ALL ( fact_portfolio[sector] ) )
+            )
+        RETURN Share * Share
+    )
+)
+
+
+// ---------------------------------------------------------------------------
+// 5. THRESHOLD / STATUS MEASURES (drive KPI card colours & conditional format)
+// ---------------------------------------------------------------------------
+
+// RBI's minimum CRAR for most NBFCs is 15%. Flag any breach in the visible set.
+CRAR Below Reg Min Flag =
+IF ( [CRAR % (wtd)] < 15, "⚠ Below 15% norm", "OK" )
+
+// Traffic-light band for GNPA, used as a measure-driven colour on cards/tables.
+GNPA Status =
+SWITCH (
+    TRUE (),
+    [GNPA %] >= 6, "High",
+    [GNPA %] >= 4, "Elevated",
+    "Contained"
+)
+
+// Dynamic title measure — bind to a Card/Text box so the page header reflects
+// the current quarter slicer selection.
+Selected Quarter Title =
+"NBFC Asset Quality — " & SELECTEDVALUE ( fact_portfolio[quarter], "All Quarters" )
+
+// ============================================================================
+// End of measures.dax
+// ============================================================================
