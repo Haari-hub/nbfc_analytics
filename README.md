@@ -275,66 +275,6 @@ nbfc-analytics/
 └── README.md
 ```
 
----
-
-## 🚀 Running the Project Locally
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd nbfc-analytics
-```
-
-### 2. Create a virtual environment
-
-Windows:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-macOS/Linux:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
-python -m pip install pandas numpy matplotlib
-```
-
-### 4. Run the ETL pipeline
-
-```bash
-python python/etl_nbfc.py
-```
-
-The cleaned datasets will be generated inside:
-
-```text
-data/
-```
-
-### 5. Build the SQLite database
-
-```bash
-python sql/load_db.py
-```
-
-This creates:
-
-```text
-sql/nbfc.db
-```
-
-The database is generated locally and therefore does not need to be stored in Git.
-
----
 
 ## 📈 Example Pipeline Output
 
