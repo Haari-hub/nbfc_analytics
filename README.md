@@ -349,41 +349,104 @@ built sql/nbfc.db
 
 ---
 
-## 📊 Power BI — Next Phase
+# 📊 Power BI Dashboard
 
-The Python and SQL analytics portions of this project are complete.
+The project includes a three-page Power BI dashboard designed to provide an executive-to-entity view of NBFC portfolio performance, asset quality, sector exposure, regulatory layers, and concentration risk.
 
-The next phase is to build an interactive **Power BI executive dashboard** using the analytical tables produced by the ETL pipeline.
-
-Planned dashboard areas include:
-
-* Portfolio overview
-* GNPA and NNPA trends
-* Sector exposure
-* Regulatory-layer analysis
-* NBFC risk ranking
-* Concentration analysis
-* Asset-quality KPIs
-
-Supporting DAX measures and development notes are available in the `powerbi/` directory.
-
-Once completed, the Power BI dashboard and screenshots will be added to this repository.
+The dashboard is built on the validated analytical tables generated through the Python ETL pipeline and SQL data model.
 
 ---
 
-## 🔮 Future Enhancements
+## Page 1 — Executive Overview
 
-Planned improvements include:
+The Executive Overview provides a high-level view of the NBFC portfolio and overall asset quality.
 
-* Interactive Power BI dashboard
-* Additional DAX measures
-* Automated trend reporting
-* Expanded risk segmentation
-* Additional financial ratios
-* PostgreSQL implementation
-* Automated ETL testing
-* Enhanced data-quality assertions
+### Key KPIs
 
+- Total Portfolio
+- GNPA
+- NNPA
+- Total NBFCs
+- Average CRAR
+- Average ROA
+
+### Key analysis
+
+- Portfolio growth over time
+- GNPA trend
+- Portfolio distribution by RBI Scale-Based Regulation layer
+- GNPA and NNPA asset-quality trends
+- Executive-level portfolio insights
+
+![Executive Overview](powerbi/screenshots/01-executive-overview.png)
+
+---
+
+## Page 2 — Sector & Portfolio Analysis
+
+This page provides a detailed view of portfolio exposure and asset quality across lending sectors and regulatory layers.
+
+### Key analysis
+
+- Portfolio by lending sector
+- Sector-level GNPA
+- Portfolio mix by RBI layer
+- Sector performance overview
+- Portfolio share
+- GNPA and NNPA
+- CRAR
+- ROA
+
+### Business questions
+
+- Which lending sectors have the largest portfolio exposure?
+- Which sectors show higher GNPA?
+- How does portfolio exposure vary across RBI regulatory layers?
+- Which sectors combine significant portfolio exposure with higher credit risk?
+
+![Sector & Portfolio Analysis](powerbi/screenshots/02-sector-portfolio-analysis.png)
+
+---
+
+## Page 3 — NBFC Performance, Risk & Concentration
+
+This page focuses on entity-level performance, risk segmentation, and portfolio concentration.
+
+### Key analysis
+
+- Top NBFCs by portfolio
+- Entity-level CRAR
+- Entity-level ROA
+- GNPA and NNPA comparison
+- Portfolio by GNPA risk band
+- Portfolio by NNPA risk band
+- Top-5 sector concentration
+- HHI concentration analysis
+- Risk insights
+
+### Business questions
+
+- Which NBFCs have the largest portfolios?
+- Which entities show higher GNPA or NNPA?
+- Which entities demonstrate stronger capital adequacy and profitability?
+- How concentrated is the overall portfolio?
+- What proportion of the portfolio falls into higher-risk GNPA and NNPA bands?
+
+![NBFC Performance, Risk & Concentration](powerbi/screenshots/03-nbfc-performance-risk-concentration.png)
+
+---
+
+## 📌 Dashboard Navigation
+
+The three-page report follows an executive-to-detail analytical flow:
+
+Executive Overview
+        ↓
+Sector & Portfolio Analysis
+        ↓
+NBFC Performance, Risk & Concentration
+
+This allows users to move from overall portfolio performance to sector-level analysis and finally to entity-level risk and concentration analysis.
 ---
 
 ## 📚 Data Context
