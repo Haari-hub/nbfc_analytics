@@ -4,7 +4,7 @@ An end-to-end data analytics project exploring **portfolio growth, asset quality
 
 The project demonstrates a complete analytics workflow using **Python, Pandas, SQL, SQLite, data-quality validation, and reproducible ETL pipelines**.
 
-> **Project Status:** Python ETL and SQL analytics are complete. Power BI dashboard development is planned as the next phase.
+> 
 
 ---
 
